@@ -1,42 +1,27 @@
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getApplications,
+  createApplication,
+  updateApplication,
+  deleteApplication as deleteApplicationApi,
+} from "./services/applicationService";
+
 import "./App.css";
 
-const initialApplications = [
-  {
-    id: 1,
-    company: "Nordic Solutions",
-    role: "Junior Frontend Developer",
-    location: "Turku, Finland",
-    date: "2026-10-12",
-    status: "Interview",
-  },
-  {
-    id: 2,
-    company: "Tech Finland Oy",
-    role: "Software Developer",
-    location: "Helsinki, Finland",
-    date: "2026-10-10",
-    status: "Applied",
-  },
-  {
-    id: 3,
-    company: "Digital Works",
-    role: "React Developer",
-    location: "Remote",
-    date: "2026-10-08",
-    status: "Offer",
-  },
-  {
-    id: 4,
-    company: "Future Systems",
-    role: "Full Stack Developer",
-    location: "Tampere, Finland",
-    date: "2026-10-05",
-    status: "Rejected",
-  },
-];
 
+function mapApplication(application) {
+  return {
+    id: application._id,
+    company: application.company,
+    role: application.jobTitle,
+    location: application.location || "",
+    date: application.applicationDate
+      ? application.applicationDate.slice(0, 10)
+      : "",
+    status: application.status,
+  };
+}
 const emptyForm = {
   company: "",
   role: "",
@@ -46,11 +31,32 @@ const emptyForm = {
 };
 
 function App() {
-  const [applications, setApplications] = useState(initialApplications);
+  const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+  async function loadApplications() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const data = await getApplications();
+      setApplications(data.map(mapApplication));
+    } catch (err) {
+      setError(err.message || "Failed to load applications.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadApplications();
+}, []);
 
   const filteredApplications = useMemo(() => {
     return applications.filter((application) => {
@@ -84,38 +90,82 @@ function App() {
     },
   ];
 
-  function handleSubmit(event) {
-    event.preventDefault();
+  
 
-    const newApplication = {
-      ...form,
-      id: Date.now(),
-    };
+async function handleSubmit(event) {
+  event.preventDefault();
 
-    setApplications((current) => [newApplication, ...current]);
+  if (saving) return;
+
+  setSaving(true);
+  setError("");
+
+  try {
+    const savedApplication = await createApplication({
+      company: form.company,
+      jobTitle: form.role,
+      location: form.location,
+      applicationDate: form.date,
+      status: form.status,
+    });
+
+    setApplications((current) => [
+      mapApplication(savedApplication),
+      ...current,
+    ]);
+
     setForm(emptyForm);
     setShowForm(false);
+  } catch (err) {
+    setError(err.message || "Failed to save application.");
+  } finally {
+    setSaving(false);
   }
+}
 
-  function updateStatus(id, status) {
+
+
+  
+async function updateStatus(id, status) {
+  setError("");
+
+  try {
+    const updatedApplication = await updateApplication(id, { status });
+
     setApplications((current) =>
       current.map((application) =>
-        application.id === id ? { ...application, status } : application
+        application.id === id
+          ? mapApplication(updatedApplication)
+          : application
       )
     );
+  } catch (err) {
+    setError(err.message || "Failed to update application status.");
   }
+}
 
-  function deleteApplication(id) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this application?"
+
+  
+async function deleteApplication(id) {
+  const confirmed = window.confirm(
+    "Are you sure you want to delete this application?"
+  );
+
+  if (!confirmed) return;
+
+  setError("");
+
+  try {
+    await deleteApplicationApi(id);
+
+    setApplications((current) =>
+      current.filter((application) => application.id !== id)
     );
-
-    if (confirmed) {
-      setApplications((current) =>
-        current.filter((application) => application.id !== id)
-      );
-    }
+  } catch (err) {
+    setError(err.message || "Failed to delete application.");
   }
+}
+
 
   return (
     <div className="app-shell">
@@ -203,6 +253,16 @@ function App() {
               <option value="Rejected">Rejected</option>
             </select>
           </div>
+          
+          {loading && (
+            <p role="status">Loading applications...</p>
+          )}
+
+          {error && (
+            <p role="alert" className="error-message">
+              {error}
+            </p>
+          )}
 
           <div className="table-wrapper">
             <table>
@@ -254,7 +314,7 @@ function App() {
               </tbody>
             </table>
 
-            {filteredApplications.length === 0 && (
+            {!loading && filteredApplications.length === 0 && (
               <div className="empty-state">
                 <h3>No applications found</h3>
                 <p>Try another search or add a new application.</p>
@@ -364,8 +424,12 @@ function App() {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="primary-button">
-                  Save application
+                <button
+                  type="submit"
+                  className="primary-button"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save application"}
                 </button>
               </div>
             </form>
