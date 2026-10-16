@@ -1,4 +1,5 @@
-
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import {
   getApplications,
@@ -8,7 +9,6 @@ import {
 } from "./services/applicationService";
 
 import "./App.css";
-
 
 function mapApplication(application) {
   return {
@@ -31,6 +31,22 @@ const emptyForm = {
 };
 
 function App() {
+const { user, logout } = useAuth();
+const location = useLocation();
+const navigate = useNavigate();
+
+const [successMessage, setSuccessMessage] = useState(
+  location.state?.successMessage || ""
+);
+
+async function handleLogout() {
+  try {
+    await logout();
+    navigate("/login", { replace: true });
+  } catch (err) {
+    setError(err.message || "Logout failed. Please try again.");
+  }
+}
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -90,8 +106,6 @@ function App() {
     },
   ];
 
-  
-
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -116,15 +130,13 @@ async function handleSubmit(event) {
 
     setForm(emptyForm);
     setShowForm(false);
+
   } catch (err) {
     setError(err.message || "Failed to save application.");
   } finally {
     setSaving(false);
   }
 }
-
-
-
   
 async function updateStatus(id, status) {
   setError("");
@@ -143,9 +155,7 @@ async function updateStatus(id, status) {
     setError(err.message || "Failed to update application status.");
   }
 }
-
-
-  
+ 
 async function deleteApplication(id) {
   const confirmed = window.confirm(
     "Are you sure you want to delete this application?"
@@ -166,7 +176,6 @@ async function deleteApplication(id) {
   }
 }
 
-
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -183,16 +192,38 @@ async function deleteApplication(id) {
           <span>▤</span> Applications
         </a>
 
-        <div className="sidebar-bottom">
-          <div className="profile-avatar">S</div>
-          <div>
-            <strong>My Workspace</strong>
-            <p>Job seeker</p>
-          </div>
-        </div>
+        
+<div className="sidebar-bottom">
+  <button
+    type="button"
+    className="profile-button"
+    onClick={() => navigate("/profile")}
+    aria-label="Open your profile"
+  >
+    <span className="profile-avatar">
+      {user?.name?.charAt(0).toUpperCase() || "U"}
+    </span>
+
+    <span className="profile-details">
+      <strong>{user?.name || "My Profile"}</strong>
+      <span>{user?.role === "admin" ? "Administrator" : "Job seeker"}</span>
+    </span>
+  </button>
+
+  <button
+    type="button"
+    className="sidebar-logout"
+    onClick={handleLogout}
+  >
+    <span aria-hidden="true">↪</span>
+    Log out
+  </button>
+</div>
+
       </aside>
 
       <main className="main-content" id="dashboard">
+        
         <header className="topbar">
           <div>
             <p className="eyebrow">WORKSPACE / OVERVIEW</p>
@@ -200,11 +231,31 @@ async function deleteApplication(id) {
             <p className="subtitle">
               Keep track of your job search, all in one place.
             </p>
+
+            {user && (
+              <p className="subtitle">
+                Welcome, <strong>{user.name}</strong> ({user.email})
+              </p>
+            )}
+
+            {successMessage && (
+              <p className="success-message" role="status">
+                {successMessage}
+              </p>
+            )}
           </div>
-          <button className="primary-button" onClick={() => setShowForm(true)}>
-            <span>＋</span> Add application
-          </button>
+
+          <div className="topbar-actions">
+
+            <button
+              className="primary-button"
+              onClick={() => setShowForm(true)}
+            >
+              <span>＋</span> Add application
+            </button>
+          </div>
         </header>
+
 
         <section className="stats-grid" aria-label="Application statistics">
           {stats.map((stat, index) => (

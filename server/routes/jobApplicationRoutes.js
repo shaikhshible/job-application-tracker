@@ -1,76 +1,148 @@
 
 const express = require("express");
+const mongoose = require("mongoose");
 const JobApplication = require("../models/JobApplication");
+const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// GET: Retrieve all job applications
+// All application routes require an authenticated user.
+router.use(protect);
+
+// Get only the logged-in user's applications.
 router.get("/", async (req, res) => {
   try {
-    const applications = await JobApplication.find().sort({
-      createdAt: -1,
-    });
+    const applications = await JobApplication.find({
+      userId: req.user._id,
+    }).sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: applications.length,
-      data: applications,
-    });
+    return res.json({ success: true, data: applications });
   } catch (error) {
-    res.status(500).json({
+    console.error("Get applications failed:", error.message);
+    return res.status(500).json({
       success: false,
-      message: "Failed to retrieve job applications",
+      message: "Failed to load applications.",
     });
   }
 });
 
-// GET: Retrieve one job application
+// Get one application belonging to the logged-in user.
 router.get("/:id", async (req, res) => {
   try {
-    const application = await JobApplication.findById(req.params.id);
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid application ID.",
+      });
+    }
+
+    const application = await JobApplication.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
 
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: "Job application not found",
+        message: "Application not found.",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: application,
-    });
+    return res.json({ success: true, data: application });
   } catch (error) {
-    res.status(400).json({
+    console.error("Get application failed:", error.message);
+    return res.status(500).json({
       success: false,
-      message: "Invalid job application ID",
+      message: "Failed to load application.",
     });
   }
 });
 
-// POST: Create a job application
+// Create an application owned by the logged-in user.
 router.post("/", async (req, res) => {
   try {
-    const application = await JobApplication.create(req.body);
+    const {
+      company,
+      jobTitle,
+      location,
+      applicationDate,
+      status,
+      jobUrl,
+      notes,
+    } = req.body;
 
-    res.status(201).json({
+    const application = await JobApplication.create({
+      company,
+      jobTitle,
+      location,
+      applicationDate,
+      status,
+      jobUrl,
+      notes,
+      userId: req.user._id,
+    });
+
+    return res.status(201).json({
       success: true,
       data: application,
     });
   } catch (error) {
-    res.status(400).json({
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Create application failed:", error.message);
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to create application.",
     });
   }
 });
 
-// PATCH: Update a job application
+// Update only an application owned by the logged-in user.
 router.patch("/:id", async (req, res) => {
   try {
-    const application = await JobApplication.findByIdAndUpdate(
-      req.params.id,
-      req.body,
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid application ID.",
+      });
+    }
+
+    const allowedFields = [
+      "company",
+      "jobTitle",
+      "location",
+      "applicationDate",
+      "status",
+      "jobUrl",
+      "notes",
+    ];
+
+    const updates = {};
+
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields provided for update.",
+      });
+    }
+
+    const application = await JobApplication.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user._id,
+      },
+      updates,
       {
         new: true,
         runValidators: true,
@@ -80,44 +152,58 @@ router.patch("/:id", async (req, res) => {
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: "Job application not found",
+        message: "Application not found.",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: application,
-    });
+    return res.json({ success: true, data: application });
   } catch (error) {
-    res.status(400).json({
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Update application failed:", error.message);
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to update application.",
     });
   }
 });
 
-// DELETE: Delete a job application
+// Delete only an application owned by the logged-in user.
 router.delete("/:id", async (req, res) => {
   try {
-    const application = await JobApplication.findByIdAndDelete(
-      req.params.id
-    );
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid application ID.",
+      });
+    }
+
+    const application = await JobApplication.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
 
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: "Job application not found",
+        message: "Application not found.",
       });
     }
 
-    res.status(200).json({
+    return res.json({
       success: true,
-      message: "Job application deleted successfully",
+      message: "Application deleted successfully.",
     });
   } catch (error) {
-    res.status(400).json({
+    console.error("Delete application failed:", error.message);
+    return res.status(500).json({
       success: false,
-      message: "Invalid job application ID",
+      message: "Failed to delete application.",
     });
   }
 });

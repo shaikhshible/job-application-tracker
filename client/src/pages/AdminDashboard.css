@@ -1,0 +1,147 @@
+
+.admin-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #f4f6fb;
+  color: #172033;
+  box-sizing: border-box;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 26px;
+  border-bottom: 1px solid #e1e6ef;
+}
+
+.admin-header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 750;
+}
+
+.admin-header p,
+.admin-welcome p {
+  margin: 0;
+  color: #69758a;
+  font-size: 14px;
+}
+
+.admin-header button {
+  padding: 11px 18px;
+  border: 1px solid #d8dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #26344d;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-header button:hover {
+  background: #edf1f7;
+}
+
+.admin-welcome {
+  margin: 28px 0;
+  padding: 26px;
+  border-radius: 14px;
+  background: #173d78;
+  color: #ffffff;
+}
+
+.admin-welcome h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.admin-welcome p {
+  color: #dce7fa;
+}
+
+.admin-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.admin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 180px;
+  padding: 24px;
+  border: 1px solid #e5eaf2;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgb(20 35 60 / 4%);
+}
+
+.admin-card h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.admin-card p {
+  margin: 0 0 20px;
+  color: #69758a;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-card span {
+  margin-top: auto;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #edf2fb;
+  color: #2458a8;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+@media (max-width: 850px) {
+  .admin-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-page {
+    padding: 20px 14px;
+  }
+
+  .admin-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-header h1 {
+    font-size: 23px;
+  }
+
+  .admin-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-card {
+    min-height: 150px;
+  }
+}
+
+.admin-card-button {
+  margin-top: auto;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 7px;
+  background: #2458b8;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-card-button:hover {
+  background: #194694;
+}

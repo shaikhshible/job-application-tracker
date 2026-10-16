@@ -1,17 +1,28 @@
-
+const adminRoutes = require("./routes/adminRoutes");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const jobApplicationRoutes = require("./routes/jobApplicationRoutes");
+const cookieParser = require("cookie-parser");
+const authRoutes = require("./routes/authRoutes");
 require("dotenv").config();
-
+const profileRoutes = require("./routes/profileRoutes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
-app.use("/api/applications", jobApplicationRoutes);
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
+app.use(express.json());
+app.use(cookieParser());
+app.use("/api/applications", jobApplicationRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/admin", adminRoutes);
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
